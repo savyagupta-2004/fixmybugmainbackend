@@ -6,7 +6,10 @@ import authRoutes from "./routes/auth.js";
 
 config();
 const app = express();
-const allowedOrigins = ["http://localhost:5173", "https://keyncoders.in"];
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://fixmybug.netlify.app",
+];
 //we have to use corsoption inorder to remove the error
 const corsOptions = {
   origin: function (origin, callback) {
@@ -26,7 +29,6 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
 app.get("/", (req, res) => {
   return res.end("Hello, world!");
@@ -38,9 +40,7 @@ mongoose
   .connect(process.env.MONGO_URL)
   .then(() => {
     app.listen(process.env.PORT, () =>
-      console.log(
-        `Server running at http://localhost:${process.env.PORT || 5000}`
-      )
+      console.log(`Server running at https://fixmybug-backend.vercel.app}`)
     );
   })
   .catch((error) => console.log(`${error} did not connect`));
