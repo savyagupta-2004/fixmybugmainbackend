@@ -55,15 +55,24 @@ export const register_repo = async (req, res) => {
   try {
     const user = await User.findOne({ email });
 
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
+    // Update the user's details
     user.repoUrl = repoUrl;
     user.bugDescription = bugDescription;
     user.branchName = branchName;
-    res.status(200).json({ msg: "Repo details saved" });
+
+    // Save the user object to the database
     await user.save();
-  } catch (err) {
-    res
-      .status(500)
-      .json({ error: err.message, msg: "Error in saving fix details" });
+
+    // After saving, send a successful response
+    res.status(200).json({ msg: "Repo details saved" });
+  } catch (error) {
+    // Catch any error during the process
+    console.error("Error saving repo details: ", error);
+    res.status(500).json({ msg: "Server error" });
   }
 };
 
