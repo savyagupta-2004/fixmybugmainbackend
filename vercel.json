@@ -11,5 +11,11 @@
       "src": "/(.*)",
       "dest": "/"
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/socket.io/:path*",
+      "destination": "https://fixmybug-backend.vercel.app/socket.io/:path*"
+    }
   ]
 }
