@@ -1,6 +1,8 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import Bugfixer_f from "../models/Bugfixer_full.js";
+import Bugfixer_p from "../models/Bugfixer_part.js";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
@@ -20,6 +22,39 @@ const transporter = nodemailer.createTransport({
     pass: EMAIL_APP_PASSWORD,
   },
 });
+
+export const login = async (req, res) => {
+  try {
+    const { email, password, type } = req.body;
+    let user;
+
+    // Select the correct schema based on the user type
+    if (type === "part-Time") {
+      user = await Bugfixer_p.findOne({ email });
+    } else if (type === "full-Time") {
+      user = await Bugfixer_f.findOne({ email });
+    } else {
+      return res.status(400).json({ msg: "Invalid user type specified." });
+    }
+
+    // If user not found
+    if (!user) return res.status(400).json({ msg: "User does not exist" });
+
+    // Check if password matches
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch)
+      return res.status(400).json({ msg: "Password doesn't match" });
+
+    // Generate JWT token
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
+
+    // Remove password from user object before sending response
+    user.password = undefined;
+    res.status(200).json({ token, user });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
 
 export const register = async (req, res) => {
   try {
@@ -49,6 +84,63 @@ export const register = async (req, res) => {
     res.status(500).json({ error: err.message, msg: "Error in registering" });
   }
 };
+export const register_part = async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+
+    let user = await Bugfixer_p.findOne({ email });
+
+    if (user) {
+      // If the user exists, update the details
+      res.status(409).json({ msg: "User already exists" });
+    } else {
+      const saltRounds = 10;
+      const salt = await bcrypt.genSalt(saltRounds);
+      const passwordHash = await bcrypt.hash(password, salt);
+
+      const newUser = new Bugfixer_p({
+        name,
+        email,
+        password: passwordHash,
+      });
+
+      const savedUser = await newUser.save();
+
+      res.status(200).json(savedUser);
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message, msg: "Error in registering" });
+  }
+};
+
+export const register_full = async (req, res) => {
+  try {
+    const { name, email, password, resumeUrl } = req.body;
+    let user = await Bugfixer_f.findOne({ email });
+
+    if (user) {
+      // If the user exists, update the details
+      res.status(409).json({ msg: "User already exists" });
+    } else {
+      const saltRounds = 10;
+      const salt = await bcrypt.genSalt(saltRounds);
+      const passwordHash = await bcrypt.hash(password, salt);
+
+      const newUser = new Bugfixer_f({
+        name,
+        email,
+        password: passwordHash,
+        resumeUrl,
+      });
+
+      const savedUser = await newUser.save();
+
+      res.status(200).json(savedUser);
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message, msg: "Error in registering" });
+  }
+};
 
 export const register_repo = async (req, res) => {
   const { repoUrl, bugDescription, branchName, email } = req.body;
@@ -72,6 +164,26 @@ export const register_repo = async (req, res) => {
   } catch (error) {
     // Catch any error during the process
     console.error("Error saving repo details: ", error);
+    res.status(500).json({ msg: "Server error" });
+  }
+};
+
+export const get_repo_details = async (req, res) => {
+  const { email } = req.params; // Change from req.query to req.params
+
+  try {
+    // Find the user by email and return all bug-related fields
+    const user = await User.findOne({ email }); // Exclude password field for security
+
+    // Check if the user exists
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
+    // If user found, return all the details present in the database
+    res.status(200).json(user);
+  } catch (error) {
+    console.error("Error fetching user bugs:", error);
     res.status(500).json({ msg: "Server error" });
   }
 };
