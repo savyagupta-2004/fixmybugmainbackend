@@ -11,7 +11,12 @@ import Message from "./models/Message.js"; // Import the Message model
 config();
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: "*" } });
+const io = new Server(server, {
+  cors: {
+    origin: "*", // Allow all origins for Socket.IO
+    methods: ["GET", "POST"],
+  },
+});
 
 const allowedOrigins = [
   "http://localhost:5173",
@@ -22,20 +27,26 @@ const allowedOrigins = [
 
 const corsOptions = {
   origin: function (origin, callback) {
-    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
+    // Log origin for debugging
+    console.log("Origin:", origin);
+    if (allowedOrigins.includes(origin) || !origin) {
       callback(null, true);
     } else {
       callback(new Error("Not allowed by CORS"));
     }
   },
-  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   credentials: true,
-  allowedHeaders: "Content-Type, Authorization",
+  allowedHeaders: ["Content-Type", "Authorization"],
 };
 
+// Apply CORS middleware to handle all requests
 app.use(cors(corsOptions));
+app.options("*", cors(corsOptions)); // Handle preflight requests
+
 app.use(express.json());
 
+// WebSocket configuration
 io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);
 
