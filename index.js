@@ -19,19 +19,12 @@ const allowedOrigins = [
 
 // Debugging - Log origin for each request
 const corsOptions = {
-  origin: function (origin, callback) {
-    console.log("Request origin:", origin); // Log origin
-    if (allowedOrigins.includes(origin) || !origin) {
-      callback(null, true);
-    } else {
-      console.error("Blocked by CORS:", origin); // Log blocked origins
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
+  origin: "*", // Allow all origins temporarily
   methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
   credentials: true,
   allowedHeaders: ["Content-Type", "Authorization"],
 };
+app.use(cors(corsOptions));
 
 // Apply CORS middleware globally
 app.use(cors(corsOptions));
