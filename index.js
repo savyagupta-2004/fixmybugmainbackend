@@ -4,12 +4,11 @@ import mongoose from "mongoose";
 import { config } from "dotenv";
 import authRoutes from "./routes/auth.js";
 import messageRoutes from "./routes/message.js";
-import { Server } from "socket.io";
 import http from "http";
-import Message from "./models/Message.js"; // Import the Message model
 
 config();
 const app = express();
+const server = http.createServer(app);
 
 const allowedOrigins = [
   "http://localhost:5173",
@@ -18,22 +17,48 @@ const allowedOrigins = [
   "https://fixmybug.me",
 ];
 
+// Debugging - Log origin for each request
 const corsOptions = {
   origin: function (origin, callback) {
-    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
+    console.log("Request origin:", origin); // Debugging: Log each request origin
+    if (allowedOrigins.includes(origin) || !origin) {
       callback(null, true);
     } else {
       callback(new Error("Not allowed by CORS"));
     }
   },
-  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-  credentials: true, // Allow cookies to be sent
-  allowedHeaders: "Content-Type, Authorization",
+  methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
+  credentials: true,
+  allowedHeaders: ["Content-Type", "Authorization"],
 };
-app.options("*", cors(corsOptions)); // Handle preflight requests
+
+// Apply CORS middleware globally
+app.use(cors(corsOptions));
+
+// Set global headers to ensure CORS headers are applied to all requests
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin) || !origin) {
+    res.setHeader("Access-Control-Allow-Origin", origin || "*");
+    res.setHeader(
+      "Access-Control-Allow-Methods",
+      "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS"
+    );
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Authorization"
+    );
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+  }
+  next();
+});
+
+// Handle preflight requests globally
+app.options("*", cors(corsOptions));
 
 app.use(express.json());
 
+// Default route for debugging
 app.get("/", (req, res) => {
   return res.end("Hello, world!");
 });
@@ -46,8 +71,9 @@ app.use("/messages", messageRoutes);
 mongoose
   .connect(process.env.MONGO_URL)
   .then(() => {
-    app.listen(process.env.PORT, () =>
-      console.log("Server running at https://fixmybug-backend.vercel.app")
-    );
+    const port = process.env.PORT || 3000; // Fallback to port 3000 if PORT is undefined
+    server.listen(port, () => {
+      console.log(`Server running at https://fixmybug-backend.vercel.app`);
+    });
   })
   .catch((error) => console.log(`${error} did not connect`));
