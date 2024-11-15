@@ -20,10 +20,11 @@ const allowedOrigins = [
 // Debugging - Log origin for each request
 const corsOptions = {
   origin: function (origin, callback) {
-    console.log("Request origin:", origin); // Debugging: Log each request origin
+    console.log("Request origin:", origin); // Log origin
     if (allowedOrigins.includes(origin) || !origin) {
       callback(null, true);
     } else {
+      console.error("Blocked by CORS:", origin); // Log blocked origins
       callback(new Error("Not allowed by CORS"));
     }
   },
@@ -54,7 +55,17 @@ app.use((req, res, next) => {
 });
 
 // Handle preflight requests globally
-app.options("*", cors(corsOptions));
+app.options("*", (req, res) => {
+  console.log("Preflight request from origin:", req.headers.origin);
+  res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
+  res.header(
+    "Access-Control-Allow-Methods",
+    "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS"
+  );
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.header("Access-Control-Allow-Credentials", "true");
+  res.sendStatus(204); // Respond to preflight with no content
+});
 
 app.use(express.json());
 
@@ -64,7 +75,15 @@ app.get("/", (req, res) => {
 });
 
 // Auth routes
+app.use("/auth", (req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", req.headers.origin || "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  next();
+});
 app.use("/auth", authRoutes);
+
 app.use("/messages", messageRoutes);
 
 // MongoDB connection and server startup
