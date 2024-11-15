@@ -10,82 +10,41 @@ config();
 const app = express();
 const server = http.createServer(app);
 
-const allowedOrigins = [
-  "http://localhost:5173",
-  "https://fixmybug.netlify.app",
-  "https://fixmybug-backend.vercel.app",
-  "https://fixmybug.me",
-];
-
-// Debugging - Log origin for each request
+// Allow all origins temporarily
 const corsOptions = {
-  origin: "*", // Allow all origins temporarily
-  methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
+  origin: "*",
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   credentials: true,
   allowedHeaders: ["Content-Type", "Authorization"],
 };
+
+// Apply CORS middleware globally ONCE
 app.use(cors(corsOptions));
 
-// Apply CORS middleware globally
-app.use(cors(corsOptions));
+// Simplify preflight request handling
+app.options("*", cors(corsOptions));
 
-// Set global headers to ensure CORS headers are applied to all requests
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin) || !origin) {
-    res.setHeader("Access-Control-Allow-Origin", origin || "*");
-    res.setHeader(
-      "Access-Control-Allow-Methods",
-      "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS"
-    );
-    res.setHeader(
-      "Access-Control-Allow-Headers",
-      "Content-Type, Authorization"
-    );
-    res.setHeader("Access-Control-Allow-Credentials", "true");
-  }
-  next();
-});
-
-// Handle preflight requests globally
-app.options("*", (req, res) => {
-  console.log("Preflight request from origin:", req.headers.origin);
-  res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
-  res.header(
-    "Access-Control-Allow-Methods",
-    "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS"
-  );
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  res.header("Access-Control-Allow-Credentials", "true");
-  res.sendStatus(204); // Respond to preflight with no content
-});
-
+// Use JSON parsing middleware
 app.use(express.json());
 
-// Default route for debugging
+// Basic route for debugging
 app.get("/", (req, res) => {
-  return res.end("Hello, world!");
+  res.send("Hello, world!");
 });
 
 // Auth routes
-app.use("/auth", (req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", req.headers.origin || "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  res.setHeader("Access-Control-Allow-Credentials", "true");
-  next();
-});
 app.use("/auth", authRoutes);
 
+// Message routes
 app.use("/messages", messageRoutes);
 
 // MongoDB connection and server startup
 mongoose
   .connect(process.env.MONGO_URL)
   .then(() => {
-    const port = process.env.PORT || 3000; // Fallback to port 3000 if PORT is undefined
+    const port = process.env.PORT || 3000;
     server.listen(port, () => {
-      console.log(`Server running at https://fixmybug-backend.vercel.app`);
+      console.log(`Server running on port ${port}`);
     });
   })
   .catch((error) => console.log(`${error} did not connect`));
