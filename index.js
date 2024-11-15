@@ -10,13 +10,6 @@ import Message from "./models/Message.js"; // Import the Message model
 
 config();
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: "*", // Allow all origins for Socket.IO
-    methods: ["GET", "POST"],
-  },
-});
 
 const allowedOrigins = [
   "http://localhost:5173",
@@ -27,57 +20,20 @@ const allowedOrigins = [
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // Log origin for debugging
-    console.log("Origin:", origin);
-    if (allowedOrigins.includes(origin) || !origin) {
+    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
       callback(null, true);
     } else {
       callback(new Error("Not allowed by CORS"));
     }
   },
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  credentials: true,
-  allowedHeaders: ["Content-Type", "Authorization"],
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+  credentials: true, // Allow cookies to be sent
+  allowedHeaders: "Content-Type, Authorization",
 };
-
-// Apply CORS middleware to handle all requests
-app.use(cors(corsOptions));
 app.options("*", cors(corsOptions)); // Handle preflight requests
 
 app.use(express.json());
 
-// WebSocket configuration
-io.on("connection", (socket) => {
-  console.log("A user connected:", socket.id);
-
-  socket.on("joinRoom", async ({ roomId, user }, callback) => {
-    socket.join(roomId);
-    console.log(`${user} joined room: ${roomId}`);
-
-    // Fetch messages from the database for this room
-    const messages = await Message.find({ roomId }).sort({ createdAt: 1 });
-    socket.emit("previousMessages", messages); // Send previous messages to the user
-
-    callback(true);
-  });
-
-  socket.on("leaveRoom", ({ roomId, user }, callback) => {
-    socket.leave(roomId);
-    console.log(`${user} left room: ${roomId}`);
-    callback(true);
-  });
-
-  socket.on("message", async (message) => {
-    // Save the message to the database
-    const newMessage = new Message(message);
-    await newMessage.save();
-
-    // Broadcast the message to the room
-    io.to(message.roomId).emit("message", message);
-  });
-});
-
-// Default route
 app.get("/", (req, res) => {
   return res.end("Hello, world!");
 });
@@ -90,8 +46,8 @@ app.use("/messages", messageRoutes);
 mongoose
   .connect(process.env.MONGO_URL)
   .then(() => {
-    server.listen(process.env.PORT, () =>
-      console.log(`Server running at https://fixmybug-backend.vercel.app`)
+    app.listen(process.env.PORT, () =>
+      console.log("Server running at https://fixmybug-backend.vercel.app")
     );
   })
   .catch((error) => console.log(`${error} did not connect`));
