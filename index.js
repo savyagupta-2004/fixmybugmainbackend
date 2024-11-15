@@ -22,7 +22,7 @@ const allowedOrigins = [
   "http://localhost:5173",
   "https://fixmybug.netlify.app",
   "https://fixmybug-backend.vercel.app",
-  "http://fixmybug.me",
+  "https://fixmybug.me",
 ];
 
 const corsOptions = {
