@@ -13,9 +13,9 @@ const server = http.createServer(app);
 // Allow all origins temporarily
 const corsOptions = {
   origin: "*",
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
 };
 
 // Apply CORS middleware globally ONCE
