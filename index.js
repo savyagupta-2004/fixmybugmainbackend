@@ -8,7 +8,11 @@ import http from "http";
 
 config();
 const app = express();
-const allowedOrigins = ["http://localhost:5173", "https://fixmybug.me"];
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://fixmybug.me",
+  "https://fixmybug.netlify.app",
+];
 //we have to use corsoption inorder to remove the error
 const corsOptions = {
   origin: function (origin, callback) {
