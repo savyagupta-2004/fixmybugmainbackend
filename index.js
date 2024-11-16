@@ -8,21 +8,23 @@ import http from "http";
 
 config();
 const app = express();
-const server = http.createServer(app);
-
-// Allow all origins temporarily
+const allowedOrigins = ["http://localhost:5173", "https://fixmybug.me"];
+//we have to use corsoption inorder to remove the error
 const corsOptions = {
-  origin: "https://fixmybug.me",
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true,
+  origin: function (origin, callback) {
+    // Check if the origin is in the allowed origins list
+    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+  credentials: true, // Allow cookies to be sent
+  allowedHeaders: "Content-Type, Authorization",
 };
 
-// Apply CORS middleware globally ONCE
 app.use(cors(corsOptions));
-
-// Simplify preflight request handling
-app.options("*", cors(corsOptions));
 
 // Use JSON parsing middleware
 app.use(express.json());
@@ -38,13 +40,13 @@ app.use("/auth", authRoutes);
 // Message routes
 app.use("/messages", messageRoutes);
 
-// MongoDB connection and server startup
 mongoose
   .connect(process.env.MONGO_URL)
   .then(() => {
-    const port = process.env.PORT || 3000;
-    server.listen(port, () => {
-      console.log(`Server running on port ${port}`);
-    });
+    app.listen(process.env.PORT, () =>
+      console.log(
+        `Server running at http://localhost:${process.env.PORT || 5000}`
+      )
+    );
   })
   .catch((error) => console.log(`${error} did not connect`));
